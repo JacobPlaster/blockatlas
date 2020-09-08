@@ -72,6 +72,7 @@ func (r *Request) Get(result interface{}, path string, query url.Values) error {
 		queryStr = query.Encode()
 	}
 	uri := strings.Join([]string{r.GetBase(path), queryStr}, "?")
+	fmt.Println("***", "GET", uri)
 	return r.Execute("GET", uri, nil, result, context.Background())
 }
 
