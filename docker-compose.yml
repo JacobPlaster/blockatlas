@@ -1,54 +1,40 @@
 version: '3.7'
 services:
-  nginx:
-    container_name: nginx
-    image: nginx:alpine
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-    ports:
-      - 8080:80
-    links:
-      - platform_api
-      - swagger_api
-
   platform_api:
     container_name: api
     build:
       context: .
       args:
         - SERVICE=api
+    depends_on:
+      - rabbit
+      - postgres
     ports:
       - 8420:8420
       - 8437:8437
-
-  swagger_api:
-    container_name: swagger_api
-    build:
-      context: .
-      args:
-        - SERVICE=swagger_api
-    ports:
-      - 8423:8423
+    network_mode: host
 
   observer_notifier:
     build:
       context: .
       args:
         - SERVICE=notifier
-    links:
+    depends_on:
       - rabbit
       - postgres
     restart: on-failure
+    network_mode: host
 
   observer_parser:
     build:
       context: .
       args:
         - SERVICE=parser
-    links:
+    depends_on:
       - rabbit
       - postgres
     restart: on-failure
+    network_mode: host
 
   observer_subscriber:
     container_name: subscriber
@@ -56,16 +42,21 @@ services:
       context: .
       args:
         - SERVICE=subscriber
-    links:
+    depends_on:
       - rabbit
       - postgres
     restart: on-failure
+    network_mode: host
 
   rabbit:
     container_name: rabbit
-    image: rabbitmq
+    image: rabbitmq:3-management
     ports:
       - 5672:5672
+      - 15672:15672
+    expose:
+      - "5672"
+      - "15672"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5672"]
       interval: 30s
@@ -81,8 +72,5 @@ services:
       - POSTGRES_DB=my_db
     ports:
       - 5432:5432
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5432"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+    expose:
+      - "5432"
